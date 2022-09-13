@@ -126,4 +126,6 @@ renderer.render(scene, camera) // at this point nothing is visible because we're
   - well maintained 
   - hard to configure 
 
+  `import * as THREE from 'three'`
+
   
