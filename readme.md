@@ -9,6 +9,13 @@ Contents
   - [What is WebGL and why use three.js](#what-is-webgl-and-why-use-threejs)
   - [Basic Scene](#basic-scene)
   - [Webpack](#webpack)
+  - [Transform Objects](#transform-objects)
+    - [Position Objects](#position-objects)
+    - [Scale Objects](#scale-objects) 
+    - [Rotate Objects](#rotate-objects)
+      - Quaternion Objects
+    - [Groups](#groups)
+  - [Animations](#animations)
 
 ---
 ## Basics 
@@ -128,4 +135,184 @@ renderer.render(scene, camera) // at this point nothing is visible because we're
 
   `import * as THREE from 'three'`
 
-  
+
+---
+### Transform Objects
+
+- there are 4 properties to transform objects
+  - position
+  - scale
+  - rotation
+  - quaternion 
+    - like a rotation 
+- all classes that inherit from Object3D possess properties like PerspectiveCamera and Mesh, i.e. perspectiveCamera and Mesh will have positon / scale / rotation / quaternion 
+
+
+The units of measurement are arbitrary 
+- "1" could be anything - 1 centimeter, 1 meter, 1 kilometer. whatever makes sense for your application. 
+
+
+Axis:
+- z is forward/backward 
+- y is up 
+- x is like going right 
+
+#### Position Objects
+
+the positions need to be set before you call `renderer.render(scene, camera)`
+
+Vector3: 
+- `position` inherits from Vector3, which has many useful methods, i.e. you can get the nelgth of a vector
+- `length()`
+- `distanceTo`
+- `Normalize`
+- `set(x, y, z)`
+````js
+console.log(mesh.position.length()) // the length of the vector is the distance between the center of the scene and our objects position 
+
+console.log(mesh.position.distanceTo(camera.position)) // the distance from the  mesh from the object you pass in (which is another Vector3, i.e. the camera)
+
+mesh.position.normalize() // takes the vector length and reduces it so its one
+
+mesh.position.set(0.7, -0.6, 1)
+// above is the same as: 
+// mesh.position.x = 0.7
+// mesh.position.y = -0.6
+// mesh.position.z = -2
+````
+
+
+Positioning things in space can be hard - one tool to help is called `AxesHelper` to display a colored line for each axis. 
+
+````js
+// Axis helper 
+const axesHelper = new THREE.AxesHelper() // 1 unit by default. can give it an argument, i.e "3" and it will be 3x bigger.
+scene.add(axesHelper)
+````
+
+red axes helper is positive x
+green is positive y 
+blue is positive z 
+
+#### Scale Objects 
+
+Scale also has x, y, z. 
+````js
+mesh.scale.x = 2
+mesh.scale.y = 0.5
+mesh.scale.z = 0.5
+
+mesh.scale.set(2, 0.5, 0.5) // or can just use this.
+````
+
+#### Rotate Objects 
+
+You can use `rotation` property or `quaternion` property. Updating one updates the other automatically. 
+
+`rotation` has x, y, and z properties but isn't a `vector3`, its a `Euler`.
+
+When change the x, y and z properties you can imagine putting a stick through your objects center in the axis's direction and then rotating that object on that stick. 
+
+i.e. the up axis is Y. You could imagine a stick going from bottom to top, then the object would rotate around that. 
+The right axis is Z. You could imagine rotating around that axis, i.e. like a planes propeller. 
+The X axis is the forward axis, i.e. wheels of a car, would rotate that way. 
+
+a full 180 degree (half a rotation) rotation is PI, i.e. 3.14159... you can use `Math.PI`.
+
+````js
+// Rotation 
+mesh.rotation.y = 3
+````
+
+Becareful when you rotate on an axis, you might also rotate on other axis. 
+
+the rotation goes by default in the x, y, and z order and you can get strange result like an axis not working anymore. This is called "gimbal lock". 
+
+In a gimbal lock you cannot re-order. 
+You can change this order by using the `reorder(...)` method. `object.rotation.reorder('yxz')`
+
+he says "we can do without z" in rotation.
+
+````js
+// Rotation 
+mesh.rotation.reorder('YXZ')
+mesh.rotation.x = Math.PI * 0.25
+mesh.rotation.y = Math.PI * 0.25
+
+// the above is applied first the Y then the X rotation, despite the order below. 
+````
+
+You have to reorder first. 
+
+`Euler` is easy to understand but this axis order can be problematic. This is why most engines and 3D softwares use Quaternion.
+
+Quaternion also expresses a rotation, but in a more mathematical way. We will not cover quaternions in this lesson but that the quaternion updates when you change the rotation, and vice versa. 
+
+
+You can tell any Object3D to have a `lookAt(...)` method which rotates the object so that its -z faces the target you provided. The target must be a Vector3
+
+`camera.lookAt(new THREE.Vector3(0, -1, 0))`
+
+
+#### Combining Transformations 
+You can combine position, rotation (or quaternion), and scale in any order. 
+
+probs easiest to use:
+````js
+mesh.position.set(0,0,0)
+mesh.scale.set(0,0,0)
+mesh.rotation.reorder('YXZ')
+mesh.rotation.x = Math.PI * 0.25
+mesh.rotation.y = Math.PI * 0.25
+````
+
+### Groups
+
+You can put objects inside groups and use `position`, `rotation` and `scale` on those groups.
+To do that, use the `Group` class
+
+````js
+const group = new THREE.Group()
+group.position.set(0, 1, 0)
+group.scale.y = 2
+group.rotation.y = 1
+// group.scale.set(0, 0, 0)
+scene.add(group)
+
+const cube1 = new THREE.Mesh(
+    new THREE.BoxGeometry(1, 1, 1),
+    new THREE.MeshBasicMaterial({color: 0xff0000})
+)
+group.add(cube1)
+
+const cube2 = new THREE.Mesh(
+    new THREE.BoxGeometry(1, 1, 1),
+    new THREE.MeshBasicMaterial({color: 0x00ff00})
+)
+cube2.position.set(-2, 0, 0)
+group.add(cube2)
+
+const cube3 = new THREE.Mesh(
+    new THREE.BoxGeometry(1, 1, 1),
+    new THREE.MeshBasicMaterial({color: 0x0000ff})
+)
+cube3.position.set(2, 0, 0)
+group.add(cube3)
+````
+
+---
+### Animations
+
+Animating is like doing stop motion 
+- move the object 
+- take a picture
+- move the object a bit more 
+- take a picture 
+- etc 
+
+
+most screens run at 60 frames per sections (FPS), but not always. your animation must look the same regardless of the framerate. 
+
+
+we need to update objects and do a render on each frame. 
+we are going to do that in a function and call this function with `window.requestAnimationFrame(...)`
