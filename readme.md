@@ -17,6 +17,12 @@ Contents
     - [Groups](#groups)
   - [Animations](#animations)
   - [Cameras](#cameras)
+    - [PerspectiveCamera](#perspectivecamera)
+    - [OrthographicCamera](#OrthographicCamera)
+    - [Custom Controls (cursor)](#custom-controls-cursor)
+    - [Built-in Controls](#built-in-controls)
+  - [Fullscreen and Resizing](#fullscreen-and-resizing)
+  
 
 ---
 ## Basics 
@@ -424,3 +430,164 @@ Choosing the right solution? No right answer because it depends on the project a
 
 ----
 ### Cameras
+
+`Camera` is an abstract class, you're not supposed to use it directly. I.e. used by `PerspectiveCamera`
+`ArrayCamera` renders the scene from multiple cameras on specific areas of the render. I.e. think about ps2 playing multiplayer on the same split screen
+`StereoCamera` render the scene through two cameras that mimic the eyes to create a parallax effects. Used with devices like VR headset, red and blue glasses or cardboard 
+`CubeCamera` do 6 renders, each one facing a different direction. Can render the surrounding for things like environment map, reflection or shadow map.
+`OrthographicCamera` is used to render the scene without perspective i.e. arcade games 
+`PerspectiveCamera` renders the scene with perspective. 
+
+We are going to use OrthograpgicCamera and PerspectiveCamera. 
+
+
+#### PerspectiveCamera
+We haven't used all the possible parameters of PerspectiveCamera
+- First one is Field of View
+  - Vertical vision angle (i.e. we used 75). He recommends between 45 and 75. 
+  - in degrees
+  - also called fov
+- 2nd param is the Aspect Ratio
+  - width of render divided by the height of the render (the render being the size)
+  - `(sizes.width / sizes.height)`
+- 3rd and 4th params are called "Near" and "Far"
+  - they correspond to how close and how far the camera can see 
+  - any object or part of the object closer than near or further than far will not show up
+  - using extreme examples like `0.0001` and `99999999` is not recommended because it causes 'z fighting'
+  - he recommends `0.1 and 100`. by default its 1 and 1000.
+
+````js
+// Camera
+const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 1, 3.4641016151377544) // if we put this position as the far, we can see some of it getting cut off (because the camera is set not to see that far)
+camera.position.x = 2
+camera.position.y = 2
+camera.position.z = 2
+console.log(camera.position.length()) // this returns 3.4641... etc
+camera.lookAt(mesh.position)
+scene.add(camera)
+````
+
+
+
+#### OrthographicCamera
+- Differs from perspectiveCamera by lack of perspective
+- Objects are same size despite their distance from the camera.
+- Parameters are:
+  - left, right, top, and bottom, then near and far.
+  - example values: `const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 100)`
+  - the cube looks flat - we're rendering a square into a rectangle canvas.
+    - we need to use the canvas ratio (width by height)
+    - this fixes it: `const camera = new THREE.OrthographicCamera(-1 * aspectRatio, 1 * aspectRatio, 1, -1, 0.1, 100)` (you need to multiple the horizontal with the aspect ratio)
+
+
+#### Custom Controls (cursor)
+We want to control the camera position with the mouse
+````js
+// native javascript to get the position of the cursor:
+
+// Cursor
+window.addEventListener('mousemove', (event) => {
+    console.log(event.clientX)
+})
+````
+- the above gives us the pixel value, better to adjust it to a value with an amplitude of 1. 
+  - wants value to go from -0.5 to +0.5 
+  ````js
+  // Cursor
+  const cursor = { 
+      x: 0,
+      y: 0
+  }
+  window.addEventListener('mousemove', (event) => {
+      cursor.x = event.clientX / sizes.width - 0.5
+      cursor.y = event.clientY / sizes.height - 0.5
+  })
+  ````
+- Update the camera position in the tick function with the cursor coordinates 
+  - we need to make the cursor.y negative because in threejs the Y is up and down, so we get strange inverted behavior. While in the browser coordinates the y axis is left to right. `cursor.y = - (event.clientY / sizes height - 0.5)`
+  - we can then set the camera position in the renderer: 
+  ````js
+      // Update camera 
+    camera.position.x = cursor.x * 3 // (the *3 increase the amplitude)
+    camera.position.y = cursor.y * 3
+  ````
+- to force the camera to look at something, you can do
+  ````js
+      // Update camera 
+    camera.position.x = cursor.x * 3
+    camera.position.y = cursor.y * 3
+    camera.lookAt(mesh.position)
+  ````
+- we cannot see the back of the cube. We can rotate our camera around the cube with math. 
+````js
+// i.e. something like this:
+    camera.position.x = Math.sin(cursor.x * Math.PI * 2) * 3
+    camera.position.z = Math.cos(cursor.x * Math.PI * 2) * 3
+    camera.position.y = cursor.y * 5
+    camera.lookAt(mesh.position)
+````
+
+
+#### Built-in Controls
+- There are many 'controls' in the three.js documentation
+- Device Oritentation Controls 
+  - used for smartphone mostly. i.e. see things moving while you move your phones camera. 
+  - ios stopped supporting device orientation 
+- Fly Controls 
+  - enable moving the camera like if you were on a spaceship. you can rotate on all 3 axes, go forward and go backward 
+- First Person Controls
+  - like Fly controls but with a fixed up axis. doesn't work like in "FPS" games
+- Pointer lock controls 
+  - uses pointer lock javascript API
+  - very immersive, like a video game
+  - makes the mouse disappear (he wouldn't use this one)
+- Orbit Control
+  - similar to the controls we made with more features
+- Trackball Controls
+  - like orbit controls without the vertical angle limit (i.e. if you have no floor or sky)
+- Transform Controls
+  - has nothing to do with the camera
+- Drag Controls
+  - nothing to do with the camera
+
+We will only use ORbitControls but feel free to test the other classes
+
+Instantiating Orbit Controls:
+- Class cannot be accessed normally like `THREE.OrbitControls`, need to import it ... 
+- `import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'`
+- need to provide 2 elements, your camera and a dom element that serves as a reference to put mouse events on it.
+````js
+// Controls 
+const controls = new OrbitControls(camera, canvas) // these work without stuff below.
+controls.target.y = 2 // it will come in centralised unless you change the target
+controls.update() // need to call this if you change target
+````
+
+Controls work good but we can add `Damping` which smooths the animation by adding some kind of acceleration and friction.
+- To enable the damping, switch the enableDamping property to true 
+````js
+// Controls 
+const controls = new OrbitControls(camera, canvas)
+controls.enableDamping = true
+
+const tick = () =>
+{
+    // updating Controls
+    controls.update()
+
+    // Render
+    renderer.render(scene, camera)
+    window.requestAnimationFrame(tick)
+}
+
+tick()
+
+````
+
+
+When to use built-in controls or custom controls?
+If a custom control can do everything you need, just use that.
+
+
+---
+### Fullscreen and Resizing
