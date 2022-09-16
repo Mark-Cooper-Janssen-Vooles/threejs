@@ -16,6 +16,7 @@ Contents
       - Quaternion Objects
     - [Groups](#groups)
   - [Animations](#animations)
+  - [Cameras](#cameras)
 
 ---
 ## Basics 
@@ -45,6 +46,10 @@ Contents
 
 ---
 ### Basic Scene
+
+https://www.npmjs.com/package/three
+
+`npm install three`
 
 Firstly we need a scene
 - like a container
@@ -316,3 +321,106 @@ most screens run at 60 frames per sections (FPS), but not always. your animation
 
 we need to update objects and do a render on each frame. 
 we are going to do that in a function and call this function with `window.requestAnimationFrame(...)`
+
+
+#### Request Animation Frame
+
+The purpose of `requestAnimationFrame` is to call the function provided on the next frame 
+We are going to call the same function on each new frame
+
+we are going to make a function, call it, and within that call `requestAnimationFrame` for the next function
+
+````js
+// Animations
+const tick = () => {
+    console.log('tick')
+
+    window.requestAnimationFrame(tick) // we just pass the function, not call. js will call on next frame. (60 times a second)
+}
+
+tick()
+````
+
+You have a function being called on each frame indefinitely 
+=> move the render.render(...) in it and increase the cube rotation
+
+````js
+const tick = () => {
+    // update Objects
+    mesh.rotation.y += 0.01 // rotates it slowly
+    // mesh.position.y += 0.01 // this makes it move off the screen
+
+    // Render 
+    renderer.render(scene, camera) // we need to move the renderer into this function
+
+    window.requestAnimationFrame(tick)
+}
+````
+
+unfortunately the higher the framerate, the faster the rotation. some gaming PC's will have faster framerates. 
+- to fix we can adapt to the frame rate. 
+  - we need to know how much time it's been since the last tick
+    - use `Date.now()` to get the current timestamp
+  - below is one solution to make it rotate independent of the frame rate
+````js
+// Time
+let time = Date.now()
+
+// Animations
+const tick = () => {
+    // Time
+    const currentTime = Date.now()
+    const deltaTime = currentTime - time
+    time = currentTime
+
+    // update Objects
+    mesh.rotation.y += 0.001 * deltaTime
+
+    // Render 
+    renderer.render(scene, camera)
+
+    window.requestAnimationFrame(tick) // we just pass the function, not call. js will call on next frame. (60 times a second)
+}
+
+tick()
+````
+  - another solution is to use `Clock` (an in-built soltuion by Threejs)
+
+
+
+We can also change it so that the camera is what moves:
+````js
+    camera.position.y = Math.sin(elapsedTime)
+    camera.position.x = Math.cos(elapsedTime)
+    camera.lookAt(mesh.position);
+````
+
+There is a clock method called `getDelta(...)` => do not use it
+
+If you want to have more control, create tweens (transition from a to b), create timelines, etc. you can use a library like GSAP. "Green Sock Library"
+
+`npm install --save gsap@3.5.1` 
+`import gsap from 'gasp'`
+
+We can also use gsap:
+````js
+gsap.to(mesh.position, { duration: 1, delay: 1, x: 2 })
+gsap.to(mesh.position, { duration: 1, delay: 2, x: 0 })
+
+// Animations
+const tick = () => {
+    // Render 
+    renderer.render(scene, camera)
+    window.requestAnimationFrame(tick)
+}
+
+tick()
+````
+
+Gsap does its own logic - so our tick function is very simple
+
+Choosing the right solution? No right answer because it depends on the project and your preferences. More complex things probably need external library like gsap.
+
+
+----
+### Cameras
