@@ -22,7 +22,13 @@ Contents
     - [Custom Controls (cursor)](#custom-controls-cursor)
     - [Built-in Controls](#built-in-controls)
   - [Fullscreen and Resizing](#fullscreen-and-resizing)
-  
+    - [Fit in the viewport](#fit-in-the-viewport)
+    - [Handle Resize](#handle-resize)
+    - [Handle Pixel ratio](#handle-pixel-ratio)
+    - [Handle Fullscreen](#handle-fullscreen)
+  - [Geometries]
+    - 
+
 
 ---
 ## Basics 
@@ -591,3 +597,91 @@ If a custom control can do everything you need, just use that.
 
 ---
 ### Fullscreen and Resizing
+
+#### Fit in the viewport 
+The current canvas is 800 x 600px
+
+Fit in the "viewport" => the content of the webpage you can see
+
+````js
+const sizes = {
+    width: window.innerWidth,
+    height: window.innerHeight
+}
+````
+
+This works but there is a margin on the top and on the left and we can scroll - because of the browser default stylings.
+
+We can fix this:
+````js
+.webgl {
+  position: fixed;
+  top: 0px;
+  left: 0px;
+  outline: none; /* you might see this as blue when dragging or dropping */
+}
+
+html, body {
+  overflow: hidden; // on a mac for example you can stroll down further and it shows white space
+}
+````
+
+#### Handle Resize
+
+When changing the screen size we see white space etc. 
+We can use native js to check the resize:
+````js
+const sizes = {
+    width: window.innerWidth,
+    height: window.innerHeight
+}
+
+window.addEventListener('resize', () => {
+    // update sizes
+    sizes.width = window.innerWidth
+    sizes.height = window.innerHeight
+
+    // update camera
+    camera.aspect = sizes.width / sizes.height
+    camera.updateProjectionMatrix()
+
+    // update renderer
+    renderer.setSize(sizes.width, sizes.height)
+})
+````
+
+#### Handle Pixel Ratio
+
+- Some might see a blurry render and stairs effect on the edges. If so, its because your screen has a pixel ratio greater than 1. 
+- Pixel ratio corresponds to how many physical pixels you have on the screen for 1 pixel unit of the software part 
+  - i.e. 1:1 gives you 1 pixel, if you have a pixel ratio of 2 you have 4 pixels to render, a pixel ratio of 3 you have 9 pixels to render, etc etc. 
+- We need to handle this, otherwise we will have blurryness 
+- To get pixel ratio we can use window.devicePixelRatio
+- in the renderer section you can add this and it will fix the majority of issues:
+````js
+renderer.setPixelRatio(window.devicePixelRatio)
+````
+- if we're rendering on a pixel ratio of 2+, we don't want to render too many pixels or it will make it slow. So to counteract this we do: 
+`renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))` => this will set it at the pixel ratio of the browser, unless its greater than 2 (then it will just render 2)
+- He also puts this inside the resize event listner
+  - if a user changes the browser tab and puts it in a different screen, this accounts for that. 
+
+
+#### Handle Fullscreen
+
+- if you want them to be able to go to fullscreen
+- add support to a fullscreen mode by double clicking anywhere 
+````js
+window.addEventListener('dblclick', () => {
+  if(!document.fullscreenElement) {
+    canvas.requestFullscreen()
+  } else {
+    document.exitFullscreen()
+  }
+})
+````
+- to go to fullscreen mode use requestFullscreen() on the concerned element (our canvas)
+- unfortunately this won't work on Safari 
+
+---
+

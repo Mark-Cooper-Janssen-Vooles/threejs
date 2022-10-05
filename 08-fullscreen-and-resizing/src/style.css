@@ -1,0 +1,10 @@
+.webgl {
+  position: fixed;
+  top: 0px;
+  left: 0px;
+  outline: none; /* you might see this as blue when dragging or dropping */
+}
+
+html, body {
+  overflow: hidden;
+}
