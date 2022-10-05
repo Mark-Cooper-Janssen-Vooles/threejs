@@ -27,7 +27,10 @@ Contents
     - [Handle Pixel ratio](#handle-pixel-ratio)
     - [Handle Fullscreen](#handle-fullscreen)
   - [Geometries]
-    - 
+    - [What is a geometry?](#what-is-a-geometry)
+    - [Built-in Geometries](#built-in-geometries)
+    - [Box Example](#box-example)
+    - [Creating your own](#creating-your-own-buffer-geometry)
 
 
 ---
@@ -685,3 +688,85 @@ window.addEventListener('dblclick', () => {
 
 ---
 
+### Geometries 
+
+#### What is a geometry?
+
+- We've used BoxGeometry so far
+- A geometry is:
+  - composed of verticies
+  - Can be used for meshes but also for particles
+  - Can store more data than the positions (UV coordinates, normals, colors or anything we want)
+
+#### Built-in Geometries
+
+- all of the following gemoerties inherit from BufferGeometry
+- many built in methods like translate(...), rotateX(...), normalize() etc
+- threejs.org/docs/#api/en/geometries
+- By combining these, we can create complex shapes
+  - however, if its too complex, its better that we use a 3d modeling software like Blender
+
+#### Box Example
+6 parameters
+- width: size on the x axis
+- height: size on the y axis
+- depth: size on the z axis
+- widthSegments: how many subdivisions in the x axis
+- heightSegments: how many subdivisions in the y axis
+- depthSegments: how many subdivisions in the z axis 
+
+Subdivisions correspond to how many triangles should compose a face
+- 1 = 2 triangles per face
+- 2 = 9 triangles per face 
+`const geometry = new THREE.BoxGeometry(1, 1, 1, 2, 2, 2)`
+- problem is we cannot see these triangles
+
+````js
+// Object
+const geometry = new THREE.BoxGeometry(1, 1, 1, 2, 2, 2) // adds 2 as subdivision
+const material = new THREE.MeshBasicMaterial({ 
+    color: 0xff0000,
+    wireframe: true // allows us to see the wireframe
+ })
+const mesh = new THREE.Mesh(geometry, material)
+scene.add(mesh)
+````
+
+#### Creating your own buffer Geometry 
+
+- things get harder 
+- before creating the geometry, we need to understand how to store buffer geometry data
+- we are going to use Float32Array (native JS)
+  - typed Array, i.e. can only store floats
+  - fixed length
+  - easier to handle for the computer
+
+````js
+const positionsArray = new Float32Array([
+    0, 0, 0, // first vertice 
+    0, 1, 0, // second vertice
+    1, 0, 0 // third vertice
+])
+const positionsAttribute = new THREE.BufferAttribute(positionsArray, 3)
+
+const geometry = new THREE.BufferGeometry()
+geometry.setAttribute('position', positionsAttribute)
+````
+
+Example where we create 500 triangles:
+
+````js
+const geometry = new THREE.BufferGeometry()
+const count = 500
+const positionsArray = new Float32Array(count * 3 * 3)
+
+for(let i = 0; i < count * 3 * 3; i++) {
+    positionsArray[i] = (Math.random() - 0.5) * 3
+}
+
+const positionsAttribute = new THREE.BufferAttribute(positionsArray, 3)
+geometry.setAttribute('position', positionsAttribute)
+
+````
+
+---
