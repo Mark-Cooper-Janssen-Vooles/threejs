@@ -34,7 +34,13 @@ Contents
   - [Debug UI](#debug-ui)
     - [How to implement](#how-to-implement-datgui)
     - [Tips](#tips)
-
+  - [Textures](#textures)
+    - [How to load textures](#how-to-load-textures)
+    - [UV Unwrapping](#uv-unwrapping)
+    - [Transforming Texture](#transforming-texture)
+    - [Filtering and mipmapping](#filtering-and-mipmapping)
+    - [Texture format and optimisation](#texture-format-and-optimisation)
+    - [Where to find textures](#where-to-find-textures)
 
 
 ---
@@ -853,4 +859,154 @@ window.addEventListener('keydown', (event) => {
 - closing the panel. either click close or at the start go: `new GUI({ closed: true })`
 - can tweak the width: `new GUI({ width: 400 })`
 - cool example is here: https://jsfiddle.net/ikatyang/182ztwao/ 
+
+---
+
+### Textures
+
+We had a red cube, we can add textures to it 
+What are textures?
+
+Textures are images that will cover the surface of the geometries. 
+Many types with many different effects
+we are going to used some door textures 
+- https://ko-fi.com/katsukagi
+- https://3dtextures.me/2019/04/16/door-wood-001/
+- multiple images in the 11-textures/static/textures/door folder
+
+
+#### How to load textures
+
+- Getting the URL of the image:
+  - because we are using webpack, there are two ways of doing it:
+    - put the image texture in the /src/ folder and import `import imageSource from ./image.png`
+    - put the image in the /static/ folder and access it directly `import imageSource = '/image.png` (this is webpack setup)
+````js
+// textures
+const image = new Image()
+image.onload = () => {
+    console.log('image loaded')
+}
+
+image.src = '/textures/door/color.jpg'
+````
+- we cannot use that image directly, we need to transform it into a Texture
+- we need to use that texture in the mateirl. 
+  - unfortunately, the texture variabel has been declared in a function and we cannot access it outside of this function
+- we can create the texture outside of the function and update it once the images is loaded with `needsUpdate = true`
+````js
+// textures
+const image = new Image()
+const texture = new THREE.Texture(image) // image hasnt loaded yet
+
+image.onload = () => {
+    texture.needsUpdate = true
+}
+
+image.src = '/textures/door/color.jpg'
+````
+- change the material to `const material = new THREE.MeshBasicMaterial({ map: texture })`
+
+
+There is a simpler way:
+````js
+// textures
+const textureLoader = new THREE.TextureLoader()
+const texture = textureLoader.load('/textures/door/color.jpg')
+````
+- one texture loader can create multiple textures also
+- We can use a LoadingManager to mutualize the events
+  - useful if we want to know global loading progress or be informed when everything is loaded
+````js
+// textures
+const loadingManager = new THREE.LoadingManager()
+loadingManager.onStart = () => {
+    console.log('loading started')
+}
+loadingManager.onLoad = () => {
+    console.log('loading finished')
+}
+loadingManager.onProgress = () => {
+    console.log('onProgress')
+}
+loadingManager.onError = () => {
+    console.log('onError')
+}
+const textureLoader = new THREE.TextureLoader(loadingManager)
+````
+
+#### UV Unwrapping
+
+- Replace the boxGeometry by other geometries
+  - if you use a sphere instead of a box, the texture is stretched 
+  - same with a cone 
+- the texutre is being stretched or squeezed in different ways to cover the geometry
+- a bit like a candy wrapping
+- each vertex will have 2d coordinate on a flat plane (usually a square)
+- if you use a geometry from the library of threejs, you get the coordinates for free:
+````js
+const geometry = new THREE.BoxGeometry(1, 1, 1)
+console.log(geometry.attributes.uv)
+````
+- if you make your own geometry in threejs, or in a 3d software like blender, you'll have to specify your own uv coordinates for wrapping to work
+
+
+#### Transforming Texture
+
+- we can repeat the texture by using the repeat property.
+  - its a vector2 with x and y properties
+- lots of methods used here... not sure i'll need to know this.
+````js
+colorTexture.repeat.x = 2
+colorTexture.repeat.y = 3
+colorTexture.wrapS = THREE.RepeatWrapping // can also do THREE.MirroredRepeatWrapping
+colorTexture.wrapT = THREE.RepeatWrapping
+
+colorTexture.offset.x = 0.5
+
+colorTexture.rotation = Math.PI * 0.25
+colorTexture.center.x = 0.5
+colorTexture.center.y = 0.5
+````
+
+#### Filtering and Mipmapping
+
+- another hard subject 
+- if you look at the cubes top face, you'll see a blurry texture. this is filtering and 'mip mapping'
+- `colorTexture.minFilter = THREE.NearestFilter`
+- `colorTexture.magFilter = THREE.NearestFilter` => this makes small images sharp
+- using NearestFilter is better for performance for framerate etc
+- when using NearestFilter on minFilter, we don't need mip mappings
+````js
+colorTexture.generateMipmaps = false
+colorTexture.minFilter = THREE.NearestFilter
+````
+
+
+#### Texture Format and Optimisation
+
+When preparing textures, keep in mind 3 crucial elements
+- the weight (file size)
+  - the users will have to download the textures
+  - choose the right file time 
+  - .jpg - lossy compression but usually lighter
+  - .png lossless compression but usually heavier (bigger to download)
+  - you can use compression websites and softwares like TinyPNG. but might look a little worse.
+- the size (or the resolution in pixels)
+  - each pixel of the textures will be stored on the GPU regardless of the images weight
+  - GPU has storage limitations
+  - mipmapping increases the number of pixels to store
+  - try to reduce the size of your images as much as possible
+  - if we use mip mapping, height and width needs to be divisible by 2 (no odd pixels)
+- the data
+  - Textures support transparency but we can have transparency in .jpg
+  - if we want to have ony one texture that combines color and alpha, we better use .png file
+
+- the difficulty is to find the right combo of texture formats and resolutions to avoid performance issues
+
+
+#### Where to find textures
+
+- hard to find 
+- poliigon.com, 3dtextures.me, arroway-textures.ch
 
