@@ -31,6 +31,10 @@ Contents
     - [Built-in Geometries](#built-in-geometries)
     - [Box Example](#box-example)
     - [Creating your own](#creating-your-own-buffer-geometry)
+  - [Debug UI](#debug-ui)
+    - [How to implement](#how-to-implement-datgui)
+    - [Tips](#tips)
+
 
 
 ---
@@ -286,7 +290,7 @@ mesh.rotation.x = Math.PI * 0.25
 mesh.rotation.y = Math.PI * 0.25
 ````
 
-### Groups
+#### Groups
 
 You can put objects inside groups and use `position`, `rotation` and `scale` on those groups.
 To do that, use the `Group` class
@@ -687,7 +691,6 @@ window.addEventListener('dblclick', () => {
 - unfortunately this won't work on Safari 
 
 ---
-
 ### Geometries 
 
 #### What is a geometry?
@@ -770,3 +773,84 @@ geometry.setAttribute('position', positionsAttribute)
 ````
 
 ---
+### Debug UI
+
+- can check out at bruno-simon.com/#debug 
+
+We need to be able to tweak and debug easily.
+It concerns the developer, the designer and even the client.
+It will help finding the perfect color, speed, quantity, etc. 
+
+We can create our own, or we can use a library:
+- dat.GUI
+- control-panel
+- ControlKit
+- Guify
+- Oui
+
+We will use dat.GUI - its the most popular one. https://github.com/dataarts/dat.gui
+
+#### How to implement dat.GUI
+
+- we need to add the dat.gui dependency `npm install dat.gui`
+- he says dat.gui hasn't been updated and has vulnerabilities, and to install `npm i lil-gui`
+- import using `import GUI from 'lil-gui'`\
+- instantiate it:
+````js
+// debug
+const gui = new GUI()
+````
+- there are different types of elements you can add to that panel
+  - range - for numbers with minimum and maximum value
+  - color - for colors with various formats
+  - text - for simple texts
+  - checkbox - for booleans (true or false)
+  - select - for a choice from a list of values
+  - button - to trigger functions
+  - folder - to organise your panel if you have too many elements 
+- he calls elements of the GUI as "tweaks"
+- to add elements, use `gui.add(...)` to add an element 
+  - first parameter is an object 
+    - you can only add an object to GUI as this is the thing we're going to tweak, i.e. the position
+  - second parameter is the property you want to tweak
+    - i.e. if mesh.position is the first param, an object like `{x: 0, y: 0, z: 0}`, then the second param will be `'y'` like so: `gui.add(mesh.position, 'y')`
+- we need to but the debug lower down on the thing we're tweaking
+
+- to add more control, we can add more parameters to the add
+  - minimum value
+  - maximum value
+  - step (or precision)
+  - `gui.add(mesh.position, 'y', -3, 3, 0.01)`
+  - or written as `gui.add(mesh.position).min(-3).max(3).step(0.01)`
+````js
+// debug
+const gui = new GUI()
+
+const parameters = {
+    spin: () => {
+        gsap.to(mesh.rotation, { duration: 1, y: mesh.rotation.y + 10 }) // keeps adding 10 rotations so you can keep clicking
+    }
+}
+gui.add(mesh.position, 'y', -3, 3, 0.01).name('elevation')
+gui.add(mesh, 'visible') // creates a checkbox 
+gui.add(material, 'wireframe') // can also use mesh.material object
+gui.addColor(material, 'color')
+gui.add(parameters, 'spin')
+````
+
+#### Tips:
+- add code to hide it:
+````js
+window.addEventListener('keydown', (event) => {
+  if(event.key === 'h') {
+    if(gui._hidden)
+      gui.show()
+    else
+      gui.hide()
+  }
+})
+````
+- closing the panel. either click close or at the start go: `new GUI({ closed: true })`
+- can tweak the width: `new GUI({ width: 400 })`
+- cool example is here: https://jsfiddle.net/ikatyang/182ztwao/ 
+
